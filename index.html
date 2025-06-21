@@ -2,119 +2,326 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Gemini Chatbot with Persistent Chat</title>
+  <title>GeminiMind Chatbot with Sidebar, Settings & Guest Mode</title>
   <style>
-    /* Samma styling som tidigare */
-    * { box-sizing: border-box; }
+    /* Grundläggande layout */
     body {
       margin: 0;
-      background: #343541;
-      font-family: 'Segoe UI', sans-serif;
-      color: #fff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       display: flex;
-      flex-direction: column;
       height: 100vh;
+      background: #202124;
+      color: #e8eaed;
+      overflow: hidden;
     }
-    #login-container, #chat-container {
-      max-width: 800px;
-      margin: 20px auto;
-      background: #202123;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 8px #10a37f;
+    #login-container {
+      margin: auto;
+      text-align: center;
+      width: 320px;
+      background: #303134;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.8);
+      color: #e8eaed;
     }
-    #login-container { display: flex; flex-direction: column; align-items: center; gap: 16px; }
-    #lang-select {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 12px;
-    }
-    select {
-      padding: 6px 10px;
-      border-radius: 6px;
-      background: #555;
-      color: white;
-      border: none;
-    }
-    #instructions {
-      padding: 16px;
-      background: #282a36;
-      border-left: 4px solid #10a37f;
-      border-radius: 8px;
-      font-size: 15px;
-      color: #ccc;
+    #login-container h2 {
       margin-bottom: 20px;
+      font-weight: 600;
     }
-    #chat {
-      flex: 1;
-      overflow-y: auto;
-      padding: 10px;
-      background: #343541;
+    #guest-btn {
+      margin-top: 20px;
+      padding: 12px 20px;
+      font-size: 16px;
+      border: none;
       border-radius: 8px;
-      height: 400px;
+      background: #5f6368;
+      color: #e8eaed;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    #guest-btn:hover {
+      background: #8ab4f8;
+      color: #202124;
+    }
+
+    /* Sidebar */
+    #sidebar {
+      width: 280px;
+      background: #2d2f31;
+      border-right: 1px solid #3c4043;
+      display: none; /* dölj tills inloggning */
+      flex-direction: column;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    #sidebar h2 {
+      font-size: 1.4em;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+    #chat-list {
+      flex-grow: 1;
+      overflow-y: auto;
       margin-bottom: 12px;
     }
-    .message {
-      max-width: 90%;
-      margin: 0 0 12px 0;
-      padding: 12px 16px;
-      border-radius: 10px;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-    }
-    .user {
-      background: #2f2f36;
-      align-self: flex-end;
-      margin-left: auto;
-    }
-    .bot {
-      background: #444654;
-      align-self: flex-start;
-      margin-right: auto;
-    }
-    #input-container {
-      display: flex;
-    }
-    #input {
-      flex: 1;
-      padding: 12px;
-      border: none;
+    .chat-item {
+      padding: 10px 12px;
+      margin-bottom: 6px;
       border-radius: 6px;
-      font-size: 16px;
-      background: #555;
-      color: white;
+      cursor: pointer;
+      background: #3c4043;
+      user-select: none;
+      transition: background-color 0.2s ease;
     }
-    #input:focus { outline: none; }
-    button#send-btn {
-      margin-left: 10px;
-      padding: 12px 20px;
+    .chat-item:hover {
+      background: #5f6368;
+    }
+    .chat-item.active {
+      background: #8ab4f8;
+      color: #202124;
+      font-weight: 700;
+    }
+    #new-chat-btn, #settings-btn, #info-btn {
+      width: 100%;
+      margin-bottom: 8px;
+      padding: 12px 0;
       border: none;
-      border-radius: 6px;
-      background-color: #10a37f;
-      color: white;
-      font-size: 16px;
+      border-radius: 8px;
+      background: #5f6368;
+      color: #e8eaed;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    #new-chat-btn:hover, #settings-btn:hover, #info-btn:hover {
+      background: #8ab4f8;
+      color: #202124;
+    }
+
+    /* Main */
+    #main {
+      flex-grow: 1;
+      display: none; /* dölj tills inloggning */
+      flex-direction: column;
+      padding: 16px;
+      box-sizing: border-box;
+      background: #202124;
+      position: relative;
+    }
+
+    /* Språkval */
+    #lang-select {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      font-size: 18px;
+      user-select: none;
+      color: #8ab4f8;
+    }
+    #lang {
+      margin-left: 6px;
+      background: #3c4043;
+      border: none;
+      border-radius: 4px;
+      color: #e8eaed;
+      padding: 2px 8px;
+      font-size: 14px;
       cursor: pointer;
     }
-    button#send-btn:hover {
-      background-color: #0d8e6b;
+
+    /* Instruktioner och exempel */
+    #instructions {
+      font-size: 14px;
+      margin-bottom: 12px;
+      color: #b0b0b0;
+      line-height: 1.5;
+      max-width: 720px;
+    }
+    #instructions strong {
+      color: #8ab4f8;
+    }
+
+    /* Chatt-fönster */
+    #chat {
+      flex-grow: 1;
+      overflow-y: auto;
+      background: #303134;
+      border-radius: 12px;
+      padding: 12px;
+      box-sizing: border-box;
+      font-size: 15px;
+      line-height: 1.4;
+      margin-bottom: 12px;
+      color: #e8eaed;
+    }
+
+    /* Meddelanden */
+    .message {
+      display: flex;
+      margin-bottom: 10px;
+      max-width: 85%;
+      word-break: break-word;
+    }
+    .message.user {
+      margin-left: auto;
+      background: #8ab4f8;
+      color: #202124;
+      border-radius: 18px 18px 0 18px;
+      padding: 12px 16px;
+      align-items: center;
+    }
+    .message.bot {
+      margin-right: auto;
+      background: #3c4043;
+      border-radius: 18px 18px 18px 0;
+      padding: 12px 16px;
+      align-items: center;
+    }
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background-size: cover;
+      background-position: center;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+    .message.user .avatar {
+      margin-left: 8px;
+      margin-right: 0;
+    }
+    .message.user {
+      flex-direction: row-reverse;
+    }
+
+    /* Inputfält och knapp */
+    #input-container {
+      display: flex;
+      gap: 8px;
+    }
+    #input {
+      flex-grow: 1;
+      padding: 12px 16px;
+      border-radius: 24px;
+      border: none;
+      background: #3c4043;
+      color: #e8eaed;
+      font-size: 16px;
+      outline-offset: -2px;
+    }
+    #input::placeholder {
+      color: #999;
+    }
+    #send-btn {
+      background: #8ab4f8;
+      border: none;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      cursor: pointer;
+      font-size: 20px;
+      color: #202124;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: background-color 0.3s ease;
+    }
+    #send-btn:hover {
+      background: #aecbfa;
+    }
+
+    /* Inställningspanel */
+    #settings-panel {
+      display: none;
+      position: absolute;
+      top: 64px;
+      right: 16px;
+      background: #303134;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.7);
+      padding: 16px;
+      width: 320px;
+      z-index: 1000;
+      color: #e8eaed;
+    }
+    #settings-panel label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: #8ab4f8;
+    }
+    #bot-instruction {
+      width: 100%;
+      height: 80px;
+      border-radius: 8px;
+      border: none;
+      background: #3c4043;
+      color: #e8eaed;
+      padding: 8px;
+      resize: vertical;
+      font-size: 14px;
+      margin-bottom: 12px;
+      outline-offset: -2px;
+    }
+    #save-settings-btn {
+      background: #8ab4f8;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      color: #202124;
+      width: 100%;
+      transition: background-color 0.3s ease;
+    }
+    #save-settings-btn:hover {
+      background: #aecbfa;
+    }
+
+    /* Info-panel */
+    #info-panel {
+      display: none;
+      position: absolute;
+      top: 64px;
+      right: 16px;
+      background: #303134;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.7);
+      padding: 16px;
+      width: 320px;
+      z-index: 1000;
+      font-size: 14px;
+      line-height: 1.5;
+      color: #e8eaed;
+      user-select: none;
     }
   </style>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
+
   <div id="login-container">
-    <h2>Sign in with Google</h2>
+    <h2>Sign in with Google or Continue as Guest</h2>
     <div id="g_id_onload"
       data-client_id="144559808754-ac0hd0m9mv7utegs4e2qkb7u1u65nnj5.apps.googleusercontent.com"
       data-callback="handleCredentialResponse"
       data-auto_prompt="false">
     </div>
     <div class="g_id_signin" data-type="standard"></div>
+    <button id="guest-btn">Continue as Guest</button>
   </div>
 
-  <div id="chat-container" style="display:none; flex-direction: column;">
+  <div id="sidebar">
+    <h2>Your Chats</h2>
+    <div id="chat-list"></div>
+    <button id="new-chat-btn">+ New Chat</button>
+    <button id="settings-btn">Settings ⚙️</button>
+    <button id="info-btn">ⓘ Info</button>
+  </div>
+
+  <div id="main">
     <div id="lang-select">
-      <label for="lang" style="margin-right: 8px;">🌐</label>
+      <label for="lang">🌐</label>
       <select id="lang">
         <option value="en" selected>English</option>
         <option value="sv">Svenska</option>
@@ -129,171 +336,389 @@
     <div id="chat"></div>
 
     <div id="input-container">
-      <input id="input" type="text" placeholder="Type a message..." />
+      <input id="input" type="text" placeholder="Type a message..." autocomplete="off" />
       <button id="send-btn">➤</button>
+    </div>
+
+    <div id="settings-panel">
+      <label for="bot-instruction">Bot Instruction / Behavior:</label>
+      <textarea id="bot-instruction" placeholder="Enter instructions for the bot's behavior..."></textarea>
+      <button id="save-settings-btn">Save Settings</button>
+    </div>
+
+    <div id="info-panel">
+      <strong>About GeminiMind Chatbot</strong><br><br>
+      This is a project by <strong>Hangry Studios</strong> integrating <strong>ChatGPT</strong> technologies.<br><br>
     </div>
   </div>
 
-  <script>
-    const apiKey = "AIzaSyDXe4hhjV4--Iud_QYP2w87soE9txg4IXk";
+<script>
+  const apiKey = "AIzaSyDXe4hhjV4--Iud_QYP2w87soE9txg4IXk";
 
-    const loginContainer = document.getElementById("login-container");
-    const chatContainer = document.getElementById("chat-container");
-    const langSelector = document.getElementById("lang");
-    const instructions = document.getElementById("instructions");
-    const chat = document.getElementById("chat");
-    const input = document.getElementById("input");
-    const sendBtn = document.getElementById("send-btn");
+  const loginContainer = document.getElementById("login-container");
+  const sidebar = document.getElementById("sidebar");
+  const chatList = document.getElementById("chat-list");
+  const newChatBtn = document.getElementById("new-chat-btn");
+  const settingsBtn = document.getElementById("settings-btn");
+  const infoBtn = document.getElementById("info-btn");
 
-    let currentUser = null;
+  const main = document.getElementById("main");
+  const langSelector = document.getElementById("lang");
+  const instructions = document.getElementById("instructions");
+  const chat = document.getElementById("chat");
+  const input = document.getElementById("input");
+  const sendBtn = document.getElementById("send-btn");
 
-    const uiTexts = {
-      en: {
-        title: "Welcome to Gemini Chatbot",
-        examples: [
-          "Summarize a news article",
-          "Create a recipe with only potatoes",
-          "Explain quantum physics to a child"
-        ],
-        placeholder: "Type a message..."
-      },
-      sv: {
-        title: "Välkommen till Gemini Chatbot",
-        examples: [
-          "Sammanfatta en nyhet",
-          "Skapa ett recept med bara potatis",
-          "Förklara kvantfysik för ett barn"
-        ],
-        placeholder: "Skriv ett meddelande..."
-      },
-      es: {
-        title: "Bienvenido al Chatbot Gemini",
-        examples: [
-          "Resume una noticia",
-          "Crea una receta solo con patatas",
-          "Explica la física cuántica a un niño"
-        ],
-        placeholder: "Escribe un mensaje..."
-      },
-      fr: {
-        title: "Bienvenue sur le chatbot Gemini",
-        examples: [
-          "Résume une actualité",
-          "Crée une recette avec seulement des pommes de terre",
-          "Explique la physique quantique à un enfant"
-        ],
-        placeholder: "Tapez un message..."
-      },
-      de: {
-        title: "Willkommen beim Gemini-Chatbot",
-        examples: [
-          "Fasse eine Nachricht zusammen",
-          "Erstelle ein Rezept nur mit Kartoffeln",
-          "Erkläre Quantenphysik für ein Kind"
-        ],
-        placeholder: "Nachricht eingeben..."
-      }
-    };
+  const settingsPanel = document.getElementById("settings-panel");
+  const botInstructionInput = document.getElementById("bot-instruction");
+  const saveSettingsBtn = document.getElementById("save-settings-btn");
 
-    function updateUI(lang) {
-      const t = uiTexts[lang];
-      instructions.innerHTML = `
-        <strong style="color:#10a37f;">${t.title}</strong><br><br>
-        ${t.placeholder}<br>
-        <strong>Examples:</strong><br>
-        • ${t.examples[0]}<br>
-        • ${t.examples[1]}<br>
-        • ${t.examples[2]}<br><br>
-        Responses generated by <strong>Gemini 2.0 Flash</strong> via Google API.<br>
-        <em>Signed in as: ${currentUser}</em>
-      `;
-      input.placeholder = t.placeholder;
+  const infoPanel = document.getElementById("info-panel");
+
+  const guestBtn = document.getElementById("guest-btn");
+
+  let currentUser = null;
+  let currentUserAvatar = null;
+  let chats = {};
+  let currentChatId = null;
+  let isGuest = false;
+
+  const defaultAvatar = "https://www.gravatar.com/avatar/?d=mp&f=y";
+  const geminiAvatar = "https://brandlogos.net/wp-content/uploads/2025/03/gemini_icon-logo_brandlogos.net_bqzeu-512x512.png";
+
+  const uiTexts = {
+    en: {
+      title: "Welcome to GeminiMind Chatbot",
+      examplesTitle: "Examples:",
+      examples: [
+        "Summarize a news article",
+        "Create a recipe with only potatoes",
+        "Explain quantum physics to a child"
+      ],
+      placeholder: "Type a message..."
+    },
+    sv: {
+      title: "Välkommen till GeminiMind Chatbot",
+      examplesTitle: "Exempel:",
+      examples: [
+        "Sammanfatta en nyhet",
+        "Skapa ett recept med bara potatis",
+        "Förklara kvantfysik för ett barn"
+      ],
+      placeholder: "Skriv ett meddelande..."
+    },
+    es: {
+      title: "Bienvenido al Chatbot GeminiMind",
+      examplesTitle: "Ejemplos:",
+      examples: [
+        "Resume una noticia",
+        "Crea una receta solo con patatas",
+        "Explica la física cuántica a un niño"
+      ],
+      placeholder: "Escribe un mensaje..."
+    },
+    fr: {
+      title: "Bienvenue sur le chatbot GeminiMind",
+      examplesTitle: "Exemples :",
+      examples: [
+        "Résume une actualité",
+        "Crée une recette avec seulement des pommes de terre",
+        "Explique la physique quantique à un enfant"
+      ],
+      placeholder: "Tapez un message..."
+    },
+    de: {
+      title: "Willkommen beim GeminiMind-Chatbot",
+      examplesTitle: "Beispiele:",
+      examples: [
+        "Fasse eine Nachricht zusammen",
+        "Erstelle ein Rezept nur mit Kartoffeln",
+        "Erkläre Quantenphysik für ein Kind"
+      ],
+      placeholder: "Nachricht eingeben..."
     }
+  };
 
-    function loadChat() {
-      const saved = localStorage.getItem(`chat_${currentUser}`);
-      if (saved) {
-        const messages = JSON.parse(saved);
-        chat.innerHTML = "";
-        for (const m of messages) {
-          appendMessage(m.sender, m.text, m.className, false);
-        }
-      }
+  function setCookie(name, value, days) {
+    const d = new Date();
+    d.setTime(d.getTime() + (days*24*60*60*1000));
+    const expires = "expires="+ d.toUTCString();
+    document.cookie = name + "=" + encodeURIComponent(value) + ";" + expires + ";path=/";
+  }
+  function getCookie(name) {
+    const cname = name + "=";
+    const decodedCookie = decodeURIComponent(document.cookie);
+    const ca = decodedCookie.split(';');
+    for(let c of ca) {
+      c = c.trim();
+      if (c.indexOf(cname) === 0) return c.substring(cname.length, c.length);
     }
+    return "";
+  }
 
-    function saveChat() {
-      const messages = [];
-      chat.querySelectorAll(".message").forEach(msg => {
-        messages.push({
-          sender: msg.innerText.split(":")[0],
-          text: msg.innerText.split(":").slice(1).join(":").trim(),
-          className: msg.className.replace("message", "").trim()
-        });
+  function updateUI(lang) {
+    const t = uiTexts[lang];
+    instructions.innerHTML = `
+      <strong style="color:#8ab4f8;">${t.title}</strong><br><br>
+      <strong>${t.examplesTitle}</strong><br>
+      • ${t.examples[0]}<br>
+      • ${t.examples[1]}<br>
+      • ${t.examples[2]}<br><br>
+      Responses generated by <strong>GeminiMind 2.0 Flash</strong> via Google API.<br>
+      <em>Signed in as: ${currentUser}</em>
+    `;
+    input.placeholder = t.placeholder;
+  }
+
+  function renderChat() {
+    chat.innerHTML = "";
+    if(!currentChatId || !chats[currentChatId]) return;
+    for(const m of chats[currentChatId].messages) {
+      appendMessage(m.sender, m.text, m.className, false, m.avatar);
+    }
+  }
+
+  function renderChatList() {
+    chatList.innerHTML = "";
+    for(const id in chats) {
+      const div = document.createElement("div");
+      div.className = "chat-item" + (id === currentChatId ? " active" : "");
+      div.textContent = chats[id].name;
+      div.dataset.chatId = id;
+      div.addEventListener("click", () => {
+        currentChatId = id;
+        botInstructionInput.value = chats[id].botInstruction || "";
+        renderChatList();
+        renderChat();
+        updateUI(langSelector.value);
+        saveChats();
+        settingsPanel.style.display = "none";
+        infoPanel.style.display = "none";
       });
-      localStorage.setItem(`chat_${currentUser}`, JSON.stringify(messages));
+      chatList.appendChild(div);
+    }
+  }
+
+  function appendMessage(sender, text, cls, save = true, avatarUrl = null) {
+    const msg = document.createElement("div");
+    msg.className = `message ${cls}`;
+
+    const avatar = document.createElement("div");
+    avatar.className = "avatar";
+
+    if(cls === "bot") {
+      avatar.style.backgroundImage = `url(${geminiAvatar})`;
+    } else if(avatarUrl) {
+      avatar.style.backgroundImage = `url(${avatarUrl})`;
+    } else {
+      avatar.style.backgroundImage = `url(${defaultAvatar})`;
     }
 
-    async function send() {
-      const text = input.value.trim();
-      if (!text) return;
-      appendMessage(currentUser, text, "user");
-      input.value = "";
-      saveChat();
+    const msgText = document.createElement("div");
+    msgText.textContent = text;
 
-      const lang = langSelector.value;
+    msg.appendChild(avatar);
+    msg.appendChild(msgText);
 
-      try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: `Reply in ${lang}. ${text}` }] }]
-            })
-          }
-        );
+    chat.appendChild(msg);
+    chat.scrollTop = chat.scrollHeight;
 
-        const data = await response.json();
-        const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "(No reply)";
-        appendMessage("Gemini", reply, "bot");
-        saveChat();
-      } catch (e) {
-        appendMessage("System", "API call error.", "bot");
-        saveChat();
+    if(save && currentChatId) {
+      chats[currentChatId].messages.push({ sender, text, className: cls, avatar: avatarUrl });
+      saveChats();
+    }
+  }
+
+  function newChat(name = `Chat ${Object.keys(chats).length + 1}`) {
+    const id = "chat_" + Date.now();
+    chats[id] = { name, messages: [], botInstruction: "" };
+    currentChatId = id;
+    renderChatList();
+    renderChat();
+    botInstructionInput.value = "";
+    updateUI(langSelector.value);
+    saveChats();
+  }
+
+  async function send() {
+    const text = input.value.trim();
+    if (!text || !currentChatId) return;
+    appendMessage(currentUser, text, "user", true, currentUserAvatar);
+    input.value = "";
+
+    const botInstruction = chats[currentChatId].botInstruction || "";
+    const lang = langSelector.value;
+
+    try {
+      const prompt = `You are an AI assistant.\n${botInstruction}\nRespond in ${lang}.\nUser says: ${text}`;
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if(data.candidates && data.candidates.length > 0) {
+        const reply = data.candidates[0].content.parts[0].text.trim();
+        appendMessage("GeminiMind", reply, "bot", true, geminiAvatar);
+      } else {
+        appendMessage("GeminiMind", "Sorry, no response received.", "bot", true, geminiAvatar);
       }
+    } catch (e) {
+      appendMessage("GeminiMind", "Error: " + e.message, "bot", true, geminiAvatar);
     }
+  }
 
-    function appendMessage(sender, text, cls, save = true) {
-      const msg = document.createElement("div");
-      msg.className = `message ${cls}`;
-      msg.innerText = `${sender}: ${text}`;
-      chat.appendChild(msg);
-      chat.scrollTop = chat.scrollHeight;
-      if (save) saveChat();
+  // Spara/ladda chattar
+  function saveChats() {
+    if(isGuest) return;
+    if(!currentUser) return;
+    localStorage.setItem("geminiChats_" + currentUser, JSON.stringify(chats));
+    localStorage.setItem("geminiCurrentChat_" + currentUser, currentChatId);
+    setCookie("geminiUser", currentUser, 30);
+    setCookie("geminiAvatar", currentUserAvatar, 30);
+  }
+
+  function loadChats() {
+    if(isGuest) {
+      chats = {};
+      currentChatId = null;
+      return;
     }
+    if(!currentUser) return;
+    const saved = localStorage.getItem("geminiChats_" + currentUser);
+    chats = saved ? JSON.parse(saved) : {};
+    currentChatId = localStorage.getItem("geminiCurrentChat_" + currentUser);
+  }
 
-    // Google Identity Services callback
-    function handleCredentialResponse(response) {
-      const jwt = response.credential;
-      const base64Url = jwt.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+  // Google login callback
+  function handleCredentialResponse(response) {
+    const jwt = parseJwt(response.credential);
+    currentUser = jwt.email || "User";
+    currentUserAvatar = jwt.picture || defaultAvatar;
+    isGuest = false;
+    loginContainer.style.display = "none";
+    sidebar.style.display = "flex";
+    main.style.display = "flex";
+
+    loadChats();
+    if(!currentChatId) newChat();
+    else {
+      renderChatList();
+      renderChat();
+    }
+    updateUI(langSelector.value);
+    settingsPanel.style.display = "none";
+    infoPanel.style.display = "none";
+
+    setCookie("geminiUser", currentUser, 30);
+    setCookie("geminiAvatar", currentUserAvatar, 30);
+  }
+
+  // Parse JWT helper
+  function parseJwt (token) {
+    var base64Url = token.split('.')[1];
+    var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    var jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
-      const user = JSON.parse(jsonPayload);
-      currentUser = user.name || user.email || "User";
-      loginContainer.style.display = "none";
-      chatContainer.style.display = "flex";
-      updateUI(langSelector.value);
-      loadChat();
-    }
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  };
 
-    langSelector.addEventListener("change", () => updateUI(langSelector.value));
-    sendBtn.addEventListener("click", send);
-    input.addEventListener("keypress", e => {
-      if (e.key === "Enter") send();
-    });
-  </script>
+  // Kontrollera login cookie vid start
+  function checkLoginCookie() {
+    const user = getCookie("geminiUser");
+    const avatar = getCookie("geminiAvatar");
+    if(user) {
+      currentUser = user;
+      currentUserAvatar = avatar || defaultAvatar;
+      isGuest = false;
+      loginContainer.style.display = "none";
+      sidebar.style.display = "flex";
+      main.style.display = "flex";
+
+      loadChats();
+      if(!currentChatId) newChat();
+      else {
+        renderChatList();
+        renderChat();
+      }
+      updateUI(langSelector.value);
+      settingsPanel.style.display = "none";
+      infoPanel.style.display = "none";
+    } else {
+      sidebar.style.display = "none";
+      main.style.display = "none";
+    }
+  }
+
+  guestBtn.addEventListener("click", () => {
+    currentUser = "Guest";
+    currentUserAvatar = defaultAvatar;
+    isGuest = true;
+    loginContainer.style.display = "none";
+    sidebar.style.display = "flex";
+    main.style.display = "flex";
+    chats = {};
+    currentChatId = null;
+    newChat("Guest Chat");
+    updateUI(langSelector.value);
+    settingsPanel.style.display = "none";
+    infoPanel.style.display = "none";
+  });
+
+  newChatBtn.addEventListener("click", () => {
+    const chatName = prompt(`Enter new chat name (${Object.keys(chats).length + 1}):`);
+    if(chatName !== null) newChat(chatName.trim() || undefined);
+  });
+
+  settingsBtn.addEventListener("click", () => {
+    if(settingsPanel.style.display === "block") {
+      settingsPanel.style.display = "none";
+    } else {
+      settingsPanel.style.display = "block";
+      infoPanel.style.display = "none";
+      if(currentChatId) botInstructionInput.value = chats[currentChatId].botInstruction || "";
+    }
+  });
+
+  saveSettingsBtn.addEventListener("click", () => {
+    if(currentChatId) {
+      chats[currentChatId].botInstruction = botInstructionInput.value.trim();
+      saveChats();
+      alert("Bot instruction saved.");
+    }
+  });
+
+  infoBtn.addEventListener("click", () => {
+    if(infoPanel.style.display === "block") {
+      infoPanel.style.display = "none";
+    } else {
+      infoPanel.style.display = "block";
+      settingsPanel.style.display = "none";
+    }
+  });
+
+  langSelector.addEventListener("change", () => {
+    updateUI(langSelector.value);
+  });
+
+  sendBtn.addEventListener("click", send);
+  input.addEventListener("keypress", e => {
+    if (e.key === "Enter") send();
+  });
+
+  window.onload = () => {
+    checkLoginCookie();
+  };
+</script>
+
 </body>
 </html>
