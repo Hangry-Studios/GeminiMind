@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gemini Chatbot with Google Sign-In</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #343541;
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    #login-container, #chat-container {
+      max-width: 800px;
+      margin: 20px auto;
+      background: #202123;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 8px #10a37f;
+    }
+    #login-container { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+    #login-btn {
+      background-color: #10a37f;
+      border: none;
+      color: white;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    #login-btn:hover {
+      background-color: #0d8e6b;
+    }
+    #lang-select {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 12px;
+    }
+    select {
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: #555;
+      color: white;
+      border: none;
+    }
+    #instructions {
+      padding: 16px;
+      background: #282a36;
+      border-left: 4px solid #10a37f;
+      border-radius: 8px;
+      font-size: 15px;
+      color: #ccc;
+      margin-bottom: 20px;
+    }
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      background: #343541;
+      border-radius: 8px;
+      height: 400px;
+      margin-bottom: 12px;
+    }
+    .message {
+      max-width: 90%;
+      margin: 0 0 12px 0;
+      padding: 12px 16px;
+      border-radius: 10px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .user {
+      background: #2f2f36;
+      align-self: flex-end;
+      margin-left: auto;
+    }
+    .bot {
+      background: #444654;
+      align-self: flex-start;
+      margin-right: auto;
+    }
+    #input-container {
+      display: flex;
+    }
+    #input {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      background: #555;
+      color: white;
+    }
+    #input:focus { outline: none; }
+    button#send-btn {
+      margin-left: 10px;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 6px;
+      background-color: #10a37f;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button#send-btn:hover {
+      background-color: #0d8e6b;
+    }
+  </style>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div id="login-container">
+    <h2>Sign in with Google</h2>
+    <div id="g_id_onload"
+      data-client_id="YOUR_GOOGLE_CLIENT_ID"
+      data-callback="handleCredentialResponse"
+      data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin" data-type="standard"></div>
+  </div>
+
+  <div id="chat-container" style="display:none; flex-direction: column;">
+    <div id="lang-select">
+      <label for="lang" style="margin-right: 8px;">🌐</label>
+      <select id="lang">
+        <option value="en" selected>English</option>
+        <option value="sv">Svenska</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+      </select>
+    </div>
+
+    <div id="instructions"></div>
+
+    <div id="chat"></div>
+
+    <div id="input-container">
+      <input id="input" type="text" placeholder="Type a message..." />
+      <button id="send-btn">➤</button>
+    </div>
+  </div>
+
+  <script>
+    const apiKey = "AIzaSyDXe4hhjV4--Iud_QYP2w87soE9txg4IXk";
+
+    const loginContainer = document.getElementById("login-container");
+    const chatContainer = document.getElementById("chat-container");
+    const langSelector = document.getElementById("lang");
+    const instructions = document.getElementById("instructions");
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("input");
+    const sendBtn = document.getElementById("send-btn");
+
+    let currentUser = null;
+
+    const uiTexts = {
+      en: {
+        title: "Welcome to Gemini Chatbot",
+        examples: [
+          "Summarize a news article",
+          "Create a recipe with only potatoes",
+          "Explain quantum physics to a child"
+        ],
+        placeholder: "Type a message..."
+      },
+      sv: {
+        title: "Välkommen till Gemini Chatbot",
+        examples: [
+          "Sammanfatta en nyhet",
+          "Skapa ett recept med bara potatis",
+          "Förklara kvantfysik för ett barn"
+        ],
+        placeholder: "Skriv ett meddelande..."
+      },
+      es: {
+        title: "Bienvenido al Chatbot Gemini",
+        examples: [
+          "Resume una noticia",
+          "Crea una receta solo con patatas",
+          "Explica la física cuántica a un niño"
+        ],
+        placeholder: "Escribe un mensaje..."
+      },
+      fr: {
+        title: "Bienvenue sur le chatbot Gemini",
+        examples: [
+          "Résume une actualité",
+          "Crée une recette avec seulement des pommes de terre",
+          "Explique la physique quantique à un enfant"
+        ],
+        placeholder: "Tapez un message..."
+      },
+      de: {
+        title: "Willkommen beim Gemini-Chatbot",
+        examples: [
+          "Fasse eine Nachricht zusammen",
+          "Erstelle ein Rezept nur mit Kartoffeln",
+          "Erkläre Quantenphysik für ein Kind"
+        ],
+        placeholder: "Nachricht eingeben..."
+      }
+    };
+
+    function updateUI(lang) {
+      const t = uiTexts[lang];
+      instructions.innerHTML = `
+        <strong style="color:#10a37f;">${t.title}</strong><br><br>
+        ${t.placeholder}<br>
+        <strong>Examples:</strong><br>
+        • ${t.examples[0]}<br>
+        • ${t.examples[1]}<br>
+        • ${t.examples[2]}<br><br>
+        Responses generated by <strong>Gemini 2.0 Flash</strong> via Google API.<br>
+        <em>Signed in as: ${currentUser}</em>
+      `;
+      input.placeholder = t.placeholder;
+    }
+
+    async function send() {
+      const text = input.value.trim();
+      if (!text) return;
+      appendMessage(currentUser, text, "user");
+      input.value = "";
+
+      const lang = langSelector.value;
+
+      try {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `Reply in ${lang}. ${text}` }] }]
+            })
+          }
+        );
+
+        const data = await response.json();
+        const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "(No reply)";
+        appendMessage("Gemini", reply, "bot");
+      } catch (e) {
+        appendMessage("System", "API call error.", "bot");
+      }
+    }
+
+    function appendMessage(sender, text, cls) {
+      const msg = document.createElement("div");
+      msg.className = `message ${cls}`;
+      msg.innerText = `${sender}: ${text}`;
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    // Google Identity Services callback
+    function handleCredentialResponse(response) {
+      const jwt = response.credential;
+      // Decode JWT payload (simple base64 decode, not verified here)
+      const base64Url = jwt.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      const user = JSON.parse(jsonPayload);
+      currentUser = user.name || user.email || "User";
+      loginContainer.style.display = "none";
+      chatContainer.style.display = "flex";
+      updateUI(langSelector.value);
+    }
+
+    langSelector.addEventListener("change", () => updateUI(langSelector.value));
+    sendBtn.addEventListener("click", send);
+    input.addEventListener("keypress", e => {
+      if (e.key === "Enter") send();
+    });
+  </script>
+</body>
+</html>
